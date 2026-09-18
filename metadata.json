@@ -1,0 +1,6 @@
+{
+  "name": "ملاحظات المشرفين الميدانية",
+  "description": "تطبيق ميداني خفيف وسريع لمشرفي مرافق المستشفى لتسجيل الملاحظات الميدانية ومتابعتها وتوثيق من فتحها ومن أغلقها.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

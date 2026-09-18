@@ -1,0 +1,211 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Hospital facility supervisor user profile",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 100
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "role": {
+          "type": "string",
+          "enum": ["admin", "supervisor"]
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["email", "displayName", "role", "active"]
+    },
+    "Worker": {
+      "title": "Worker",
+      "description": "Technician or worker informed about the observation",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "department": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["name", "department", "active"]
+    },
+    "Location": {
+      "title": "Location",
+      "description": "Hospital facility location or zone",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "maxLength": 150
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["name", "active"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Category of the observation (maintenance, cleaning, etc.)",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["name", "active"]
+    },
+    "Observation": {
+      "title": "Observation",
+      "description": "Field observation recorded by a supervisor",
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "categoryId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "categoryName": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "locationId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "locationName": {
+          "type": "string",
+          "maxLength": 150
+        },
+        "workerId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "workerName": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "status": {
+          "type": "string",
+          "enum": ["OPEN", "PAUSED", "CLOSED"]
+        },
+        "createdBy": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "createdByName": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "pausedBy": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "pausedByName": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "pausedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "pauseReason": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "reviewDate": {
+          "type": "string",
+          "maxLength": 50
+        },
+        "closedBy": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "closedByName": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "closedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "description",
+        "categoryId",
+        "categoryName",
+        "locationId",
+        "locationName",
+        "workerId",
+        "workerName",
+        "status",
+        "createdBy",
+        "createdByName",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "#/entities/User",
+      "description": "Supervisor user profiles and roles"
+    },
+    "/workers/{workerId}": {
+      "schema": "#/entities/Worker",
+      "description": "Facility technicians and workers"
+    },
+    "/locations/{locationId}": {
+      "schema": "#/entities/Location",
+      "description": "Hospital facility locations and zones"
+    },
+    "/categories/{categoryId}": {
+      "schema": "#/entities/Category",
+      "description": "Observation categories"
+    },
+    "/observations/{observationId}": {
+      "schema": "#/entities/Observation",
+      "description": "Field observations created and closed by supervisors"
+    }
+  }
+}

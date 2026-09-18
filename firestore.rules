@@ -1,0 +1,95 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'Khalid.a.kh990@gmail.com' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128;
+    }
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 1. Users collection
+    // Any authenticated supervisor can read user profiles (to display names of creators/closers)
+    // Only admins or the user themselves (initial bootstrap) can create/update
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow update, delete: if isAdmin();
+    }
+
+    // 2. Workers collection (technicians, cleaners, etc.)
+    // Read: All authenticated supervisors
+    // Write: Only admins
+    match /workers/{workerId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin() && isValidId(workerId);
+    }
+
+    // 3. Locations collection
+    // Read: All authenticated supervisors
+    // Write: Only admins
+    match /locations/{locationId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin() && isValidId(locationId);
+    }
+
+    // 4. Categories collection
+    // Read: All authenticated supervisors
+    // Write: Only admins
+    match /categories/{categoryId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin() && isValidId(categoryId);
+    }
+
+    // 5. Observations collection
+    // Read: All authenticated supervisors
+    // Create: Authenticated supervisors can create observations where createdBy == request.auth.uid and status == 'OPEN'
+    // Update: Any authenticated supervisor can:
+    //   - Close an observation (status -> 'CLOSED', closedBy == request.auth.uid)
+    //   - Pause an observation (status -> 'PAUSED', pausedBy == request.auth.uid)
+    //   - Reopen a paused observation (status -> 'OPEN')
+    // Delete: Only admins can delete observations
+    match /observations/{observationId} {
+      allow read: if isSignedIn();
+
+      allow create: if isSignedIn()
+        && isValidId(observationId)
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.status == 'OPEN'
+        && request.resource.data.description is string
+        && request.resource.data.description.size() > 0
+        && request.resource.data.description.size() <= 1000;
+
+      allow update: if isSignedIn() && (
+        isAdmin() ||
+        // Close action: any supervisor can close
+        (request.resource.data.status == 'CLOSED' &&
+         request.resource.data.closedBy == request.auth.uid) ||
+        // Pause action
+        (request.resource.data.status == 'PAUSED' &&
+         request.resource.data.pausedBy == request.auth.uid) ||
+        // Reopen action
+        (resource.data.status == 'PAUSED' &&
+         request.resource.data.status == 'OPEN')
+      );
+
+      allow delete: if isAdmin();
+    }
+  }
+}

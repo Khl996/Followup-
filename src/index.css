@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+@layer base {
+  html {
+    direction: rtl;
+    text-align: right;
+  }
+  body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Arabic", "Cairo", "Tahoma", sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
