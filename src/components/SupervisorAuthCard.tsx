@@ -1,13 +1,9 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Building2, Lock, Mail, AlertCircle, ShieldCheck, UserPlus, LogIn, Database } from 'lucide-react';
+import { Building2, Lock, Mail, AlertCircle, UserPlus, LogIn } from 'lucide-react';
 
-interface SupervisorAuthCardProps {
-  onOpenFirebaseGuide: () => void;
-}
-
-export const SupervisorAuthCard: React.FC<SupervisorAuthCardProps> = ({ onOpenFirebaseGuide }) => {
-  const { loginWithEmail, createSupervisorAccount, switchDemoUser } = useAuth();
+export const SupervisorAuthCard: React.FC = () => {
+  const { loginWithEmail, createSupervisorAccount } = useAuth();
 
   const [email, setEmail] = useState('Khalid.a.kh990@gmail.com');
   const [password, setPassword] = useState('');
@@ -26,7 +22,7 @@ export const SupervisorAuthCard: React.FC<SupervisorAuthCardProps> = ({ onOpenFi
         await createSupervisorAccount(
           email.trim(),
           password,
-          name.trim() || 'خالد العتيبي',
+          name.trim() || 'مشرف مرافق',
           email.trim().toLowerCase() === 'khalid.a.kh990@gmail.com' ? 'admin' : 'supervisor'
         );
       } else {
@@ -35,13 +31,15 @@ export const SupervisorAuthCard: React.FC<SupervisorAuthCardProps> = ({ onOpenFi
     } catch (err: any) {
       console.error('Authentication error:', err);
       if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
-        setError('المستخدم غير موجود أو كلمة المرور غير صحيحة. إذا كانت هذه أول مرة، انقر على "تسجيل هذا الحساب لأول مرة" أدناه.');
+        setError('بيانات الدخول غير صحيحة أو أن الحساب غير مسجل. إذا كانت هذه أول مرة، انقر على "تسجيل هذا الحساب لأول مرة" أدناه.');
       } else if (err.code === 'auth/wrong-password') {
         setError('كلمة المرور غير صحيحة.');
       } else if (err.code === 'auth/email-already-in-use') {
-        setError('هذا البريد مسجل مسبقاً، يمكنك تسجيل الدخول به مباشرة.');
+        setError('هذا البريد مسجل مسبقاً، يرجى تسجيل الدخول مباشرة.');
       } else if (err.code === 'auth/weak-password') {
-        setError('كلمة المرور يجب أن لا تقل عن 6 خانات.');
+        setError('كلمة المرور يجب ألا تقل عن 6 خانات.');
+      } else if (err.code === 'auth/network-request-failed') {
+        setError('تعذر الاتصال بالشبكة. يرجى التحقق من اتصال الإنترنت.');
       } else {
         setError(err.message || 'حدث خطأ أثناء تسجيل الدخول.');
       }
@@ -65,12 +63,6 @@ export const SupervisorAuthCard: React.FC<SupervisorAuthCardProps> = ({ onOpenFi
           <p className="text-xs text-slate-700 mt-1">
             إدارة تشغيل ومرافق المستشفى
           </p>
-
-          {/* Connected Firebase Badge */}
-          <div className="mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>متصل بمشروع Firebase: followup-eae79</span>
-          </div>
         </div>
 
         {error && (
@@ -108,7 +100,7 @@ export const SupervisorAuthCard: React.FC<SupervisorAuthCardProps> = ({ onOpenFi
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Khalid.a.kh990@gmail.com"
+                placeholder="supervisor@hospital.org"
                 required
                 className="w-full pl-3 pr-8 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-sky-500 outline-hidden text-left"
                 dir="ltr"
@@ -143,7 +135,7 @@ export const SupervisorAuthCard: React.FC<SupervisorAuthCardProps> = ({ onOpenFi
             {isRegistering ? (
               <>
                 <UserPlus className="w-4 h-4" />
-                <span>{loading ? 'جاري التسجيل...' : 'تسجيل حساب المشرف في Firebase'}</span>
+                <span>{loading ? 'جاري التسجيل...' : 'تسجيل حساب المشرف'}</span>
               </>
             ) : (
               <>
@@ -154,7 +146,7 @@ export const SupervisorAuthCard: React.FC<SupervisorAuthCardProps> = ({ onOpenFi
           </button>
 
           {/* Toggle Login / Register */}
-          <div className="pt-1 text-center">
+          <div className="pt-2 text-center">
             <button
               type="button"
               onClick={() => {
@@ -165,31 +157,11 @@ export const SupervisorAuthCard: React.FC<SupervisorAuthCardProps> = ({ onOpenFi
             >
               {isRegistering
                 ? 'لديك حساب بالفعل؟ تسجيل الدخول'
-                : 'أول مرة تستخدم هذا الحساب؟ تسجيل الحساب في Firebase'}
+                : 'أول مرة تستخدم هذا الحساب؟ تسجيل الحساب لأول مرة'}
             </button>
           </div>
 
         </form>
-
-        {/* Demo Mode & Firebase Guide Option */}
-        <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
-          <button
-            type="button"
-            onClick={onOpenFirebaseGuide}
-            className="text-slate-700 hover:text-slate-800 font-medium flex items-center gap-1"
-          >
-            <Database className="w-3.5 h-3.5" />
-            <span>دليل الإعداد والقواعد</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => switchDemoUser('sup-1')}
-            className="text-sky-700 hover:text-sky-800 font-bold"
-          >
-            المعاينة بالوضع التجريبي الميداني &larr;
-          </button>
-        </div>
 
       </div>
     </div>

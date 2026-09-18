@@ -10,15 +10,14 @@ import { PausedObservationsScreen } from './components/PausedObservationsScreen'
 import { DailyLogScreen } from './components/DailyLogScreen';
 import { AdminScreen } from './components/AdminScreen';
 import { ObservationDetailsModal } from './components/ObservationDetailsModal';
-import { FirebaseGuideModal } from './components/FirebaseGuideModal';
 import { SupervisorAuthCard } from './components/SupervisorAuthCard';
+import { AlertTriangle } from 'lucide-react';
 
 const MainContent: React.FC = () => {
   const { currentUser, loading, isFirebaseLive } = useAuth();
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('home');
   const [selectedObservation, setSelectedObservation] = useState<Observation | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  const [isFirebaseGuideOpen, setIsFirebaseGuideOpen] = useState(false);
 
   const handleSelectObservation = (obs: Observation) => {
     setSelectedObservation(obs);
@@ -34,15 +33,32 @@ const MainContent: React.FC = () => {
     );
   }
 
-  // If live Firebase is connected and no supervisor is signed in yet
-  if (isFirebaseLive && !currentUser) {
+  // If Firebase fails to initialize
+  if (!isFirebaseLive) {
+    return (
+      <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-4 text-right font-sans" dir="rtl">
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-lg max-w-md w-full text-center">
+          <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto mb-3" />
+          <h2 className="text-base font-bold text-slate-900 mb-2">تعذر الاتصال بقاعدة بيانات النظام</h2>
+          <p className="text-xs text-slate-600 leading-relaxed mb-4">
+            تعذر الاتصال بخوادم الملاحظات الميدانية. يرجى التحقق من اتصال الإنترنت، أو مراجعة مسؤول إدارة المرافق.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="w-full py-2.5 bg-sky-700 hover:bg-sky-800 text-white text-xs font-bold rounded-xl transition-colors"
+          >
+            إعادة المحاولة
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // If supervisor is not signed in
+  if (!currentUser) {
     return (
       <div className="min-h-screen bg-slate-100 flex flex-col antialiased text-slate-900 font-sans" dir="rtl">
-        <SupervisorAuthCard onOpenFirebaseGuide={() => setIsFirebaseGuideOpen(true)} />
-        <FirebaseGuideModal
-          isOpen={isFirebaseGuideOpen}
-          onClose={() => setIsFirebaseGuideOpen(false)}
-        />
+        <SupervisorAuthCard />
       </div>
     );
   }
@@ -54,7 +70,6 @@ const MainContent: React.FC = () => {
       <Header
         currentScreen={currentScreen}
         setScreen={setCurrentScreen}
-        onOpenFirebaseGuide={() => setIsFirebaseGuideOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -88,7 +103,6 @@ const MainContent: React.FC = () => {
         {currentScreen === 'admin' && (
           <AdminScreen
             setScreen={setCurrentScreen}
-            onOpenFirebaseGuide={() => setIsFirebaseGuideOpen(true)}
           />
         )}
       </main>
@@ -99,7 +113,7 @@ const MainContent: React.FC = () => {
         setScreen={setCurrentScreen}
       />
 
-      {/* Observation Details Modal (Screen 3) */}
+      {/* Observation Details Modal */}
       <ObservationDetailsModal
         observation={selectedObservation}
         isOpen={isDetailsOpen}
@@ -109,17 +123,11 @@ const MainContent: React.FC = () => {
         }}
       />
 
-      {/* Firebase Setup, Security Rules & Hosting Guide Modal */}
-      <FirebaseGuideModal
-        isOpen={isFirebaseGuideOpen}
-        onClose={() => setIsFirebaseGuideOpen(false)}
-      />
-
     </div>
   );
 };
 
-export default function App() {
+export const App: React.FC = () => {
   return (
     <AuthProvider>
       <DataProvider>
@@ -127,4 +135,6 @@ export default function App() {
       </DataProvider>
     </AuthProvider>
   );
-}
+};
+
+export default App;

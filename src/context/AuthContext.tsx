@@ -1,15 +1,17 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { SupervisorUser } from '../types';
-import { auth, db, isConfigured } from '../firebase/config';
+import { auth, db, isConfigured, getSavedFirebaseConfig } from '../firebase/config';
+import { initializeApp as initSecondaryApp, deleteApp } from 'firebase/app';
 import { 
   signInWithEmailAndPassword, 
   signOut as firebaseSignOut, 
   onAuthStateChanged,
   createUserWithEmailAndPassword,
-  updateProfile
+  updateProfile,
+  getAuth as getSecondaryAuth,
+  signOut as secondarySignOut
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { INITIAL_SUPERVISORS } from '../data/mockData';
 
 interface AuthContextType {
   currentUser: SupervisorUser | null;
@@ -18,9 +20,7 @@ interface AuthContextType {
   isFirebaseLive: boolean;
   loginWithEmail: (email: string, pass: string) => Promise<void>;
   logout: () => Promise<void>;
-  switchDemoUser: (userId: string) => void;
   createSupervisorAccount: (email: string, pass: string, name: string, role: 'admin' | 'supervisor') => Promise<void>;
-  demoSupervisors: SupervisorUser[];
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,14 +28,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<SupervisorUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [demoSupervisors, setDemoSupervisors] = useState<SupervisorUser[]>(() => {
-    try {
-      const saved = localStorage.getItem('hospital_demo_supervisors');
-      return saved ? JSON.parse(saved) : INITIAL_SUPERVISORS;
-    } catch {
-      return INITIAL_SUPERVISORS;
-    }
-  });
 
   const isFirebaseLive = isConfigured && auth !== null && db !== null;
 
@@ -53,7 +45,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                   ...userSnap.data(),
                 } as SupervisorUser);
               } else {
-                // Auto-create user doc if missing
+                // Auto-create user doc if missing on first login
                 const isAdminEmail = firebaseUser.email?.toLowerCase() === 'khalid.a.kh990@gmail.com';
                 const newUser: SupervisorUser = {
                   id: firebaseUser.uid,
@@ -71,12 +63,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
           } catch (e) {
             console.error('Failed to load user document from firestore', e);
-            // Fallback user
+            // Fallback user state from auth profile
+            const isAdminEmail = firebaseUser.email?.toLowerCase() === 'khalid.a.kh990@gmail.com';
             setCurrentUser({
               id: firebaseUser.uid,
               email: firebaseUser.email || '',
-              displayName: firebaseUser.displayName || 'مشرف مرافق',
-              role: firebaseUser.email?.toLowerCase() === 'khalid.a.kh990@gmail.com' ? 'admin' : 'supervisor',
+              displayName: firebaseUser.displayName || (isAdminEmail ? 'خالد العتيبي' : 'مشرف مرافق'),
+              role: isAdminEmail ? 'admin' : 'supervisor',
               active: true,
             });
           }
@@ -87,86 +80,68 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       return () => unsubscribe();
     } else {
-      // Local/Demo Mode Auth
-      const savedUserId = localStorage.getItem('hospital_active_user_id');
-      const found = demoSupervisors.find(u => u.id === savedUserId) || demoSupervisors[0];
-      setCurrentUser(found || null);
       setLoading(false);
     }
   }, [isFirebaseLive]);
 
   const loginWithEmail = async (email: string, pass: string) => {
     if (isFirebaseLive && auth) {
-      await signInWithEmailAndPassword(auth, email, pass);
+      await signInWithEmailAndPassword(auth, email.trim(), pass);
     } else {
-      // Check local supervisors
-      const trimmed = email.trim().toLowerCase();
-      const match = demoSupervisors.find(u => u.email.toLowerCase() === trimmed);
-      if (match) {
-        setCurrentUser(match);
-        localStorage.setItem('hospital_active_user_id', match.id);
-      } else {
-        // Allow creating demo supervisor on the fly
-        const newDemoUser: SupervisorUser = {
-          id: `demo_${Date.now()}`,
-          email: trimmed,
-          displayName: trimmed.split('@')[0],
-          role: trimmed.includes('admin') || trimmed === 'khalid.a.kh990@gmail.com' ? 'admin' : 'supervisor',
-          active: true,
-        };
-        const updated = [...demoSupervisors, newDemoUser];
-        setDemoSupervisors(updated);
-        localStorage.setItem('hospital_demo_supervisors', JSON.stringify(updated));
-        setCurrentUser(newDemoUser);
-        localStorage.setItem('hospital_active_user_id', newDemoUser.id);
-      }
+      throw new Error('خدمة المصادقة غير مهيأة');
     }
   };
 
   const logout = async () => {
     if (isFirebaseLive && auth) {
       await firebaseSignOut(auth);
-    } else {
-      setCurrentUser(null);
-      localStorage.removeItem('hospital_active_user_id');
     }
+    setCurrentUser(null);
   };
 
-  const switchDemoUser = (userId: string) => {
-    const found = demoSupervisors.find(u => u.id === userId);
-    if (found) {
-      setCurrentUser(found);
-      localStorage.setItem('hospital_active_user_id', found.id);
-    }
-  };
-
+  /**
+   * Safe Supervisor Account Creation:
+   * Uses a secondary Firebase App instance so that the active admin session
+   * is NOT replaced or logged out when creating another supervisor's account!
+   */
   const createSupervisorAccount = async (email: string, pass: string, name: string, role: 'admin' | 'supervisor') => {
-    if (isFirebaseLive && auth && db) {
-      const cred = await createUserWithEmailAndPassword(auth, email, pass);
-      await updateProfile(cred.user, { displayName: name });
-      const userDocRef = doc(db, 'users', cred.user.uid);
-      const newUser: SupervisorUser = {
-        id: cred.user.uid,
-        email,
-        displayName: name,
+    if (!isFirebaseLive || !db) {
+      throw new Error('قاعدة البيانات غير متصلة');
+    }
+
+    const config = getSavedFirebaseConfig();
+    const secondaryAppName = `SupervisorCreation_${Date.now()}`;
+    const secondaryApp = initSecondaryApp(config, secondaryAppName);
+
+    try {
+      const secondaryAuth = getSecondaryAuth(secondaryApp);
+      const cred = await createUserWithEmailAndPassword(secondaryAuth, email.trim(), pass);
+      
+      if (name.trim()) {
+        await updateProfile(cred.user, { displayName: name.trim() });
+      }
+
+      const newUserId = cred.user.uid;
+
+      // Safely sign out the secondary instance
+      await secondarySignOut(secondaryAuth);
+
+      // Write supervisor profile document to Firestore using the primary admin session
+      const userDocRef = doc(db, 'users', newUserId);
+      const newUserDoc: SupervisorUser = {
+        id: newUserId,
+        email: email.trim(),
+        displayName: name.trim() || 'مشرف مرافق',
         role,
         active: true,
       };
+
       await setDoc(userDocRef, {
-        ...newUser,
+        ...newUserDoc,
         createdAt: serverTimestamp(),
       });
-    } else {
-      const newSup: SupervisorUser = {
-        id: `user_${Date.now()}`,
-        email,
-        displayName: name,
-        role,
-        active: true,
-      };
-      const updated = [...demoSupervisors, newSup];
-      setDemoSupervisors(updated);
-      localStorage.setItem('hospital_demo_supervisors', JSON.stringify(updated));
+    } finally {
+      await deleteApp(secondaryApp).catch(() => {});
     }
   };
 
@@ -181,9 +156,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isFirebaseLive,
         loginWithEmail,
         logout,
-        switchDemoUser,
         createSupervisorAccount,
-        demoSupervisors,
       }}
     >
       {children}

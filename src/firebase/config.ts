@@ -26,20 +26,7 @@ export const DEFAULT_FIREBASE_CONFIG: FirebaseConfigOptions = {
 };
 
 export function getSavedFirebaseConfig(): FirebaseConfigOptions {
-  // 1. Check custom localStorage override if any
-  try {
-    const custom = localStorage.getItem('hospital_firebase_custom_config');
-    if (custom) {
-      const parsed = JSON.parse(custom);
-      if (parsed.apiKey && parsed.projectId) {
-        return parsed;
-      }
-    }
-  } catch (e) {
-    console.error('Failed to parse custom firebase config', e);
-  }
-
-  // 2. Check Vite env variables
+  // 1. Check Vite env variables if present
   if (import.meta.env.VITE_FIREBASE_API_KEY && import.meta.env.VITE_FIREBASE_PROJECT_ID) {
     return {
       apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -52,7 +39,7 @@ export function getSavedFirebaseConfig(): FirebaseConfigOptions {
     };
   }
 
-  // 3. Fallback to default project
+  // 2. Default operational project configuration
   return DEFAULT_FIREBASE_CONFIG;
 }
 
