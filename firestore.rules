@@ -7,9 +7,13 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isBootstrapAdminEmail() {
+      return request.auth.token.email != null && request.auth.token.email.lower() == 'khalid.a.kh990@gmail.com';
+    }
+
     function isAdmin() {
       return isSignedIn() && (
-        (request.auth.token.email != null && request.auth.token.email.lower() == 'khalid.a.kh990@gmail.com') ||
+        isBootstrapAdminEmail() ||
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
       );
@@ -26,12 +30,23 @@ service cloud.firestore {
 
     // 1. Users collection
     // Any authenticated supervisor can read user profiles (to display names of creators/closers)
-    // Only admins or the user themselves (initial bootstrap) can create/update
+    // Admin can create/update/delete any user document
+    // First-time signed-in normal user may only create their own document with strictly validated safe fields
+    // Users cannot update their own role or active status (admin-only updates)
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-      allow update: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-      allow delete: if isAdmin();
+
+      allow create: if isSignedIn() && (
+        isAdmin() || (
+          request.auth.uid == userId &&
+          request.resource.data.id == userId &&
+          request.resource.data.email == request.auth.token.email &&
+          request.resource.data.active == true &&
+          (isBootstrapAdminEmail() ? request.resource.data.role in ['admin', 'supervisor'] : request.resource.data.role == 'supervisor')
+        )
+      );
+
+      allow update, delete: if isAdmin();
     }
 
     // 2. Workers collection (technicians, cleaners, etc.)
@@ -59,13 +74,27 @@ service cloud.firestore {
     }
 
     // 5. Observations collection
-    // Read: All authenticated supervisors
-    // Create: Authenticated supervisors can create observations where createdBy == request.auth.uid and status == 'OPEN'
-    // Update: Any authenticated supervisor can:
-    //   - Close an observation (status -> 'CLOSED', closedBy == request.auth.uid)
-    //   - Pause an observation (status -> 'PAUSED', pausedBy == request.auth.uid)
-    //   - Reopen a paused observation (status -> 'OPEN')
-    // Delete: Only admins can delete observations
+    // Transition validation helpers using affectedKeys()
+    function isClosingValid() {
+      return (resource.data.status == 'OPEN' || resource.data.status == 'PAUSED')
+        && request.resource.data.status == 'CLOSED'
+        && request.resource.data.closedBy == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'closedBy', 'closedByName', 'closedAt']);
+    }
+
+    function isPausingValid() {
+      return resource.data.status == 'OPEN'
+        && request.resource.data.status == 'PAUSED'
+        && request.resource.data.pausedBy == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'pausedBy', 'pausedByName', 'pausedAt', 'pauseReason', 'reviewDate']);
+    }
+
+    function isReopeningValid() {
+      return resource.data.status == 'PAUSED'
+        && request.resource.data.status == 'OPEN'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+    }
+
     match /observations/{observationId} {
       allow read: if isSignedIn();
 
@@ -77,20 +106,13 @@ service cloud.firestore {
         && request.resource.data.description.size() > 0
         && request.resource.data.description.size() <= 1000;
 
+      // Closed observations cannot be reopened or modified by normal supervisors
+      // Only admins have broader maintenance access
       allow update: if isSignedIn() && (
         isAdmin() ||
-        // Close action: any supervisor can close
-        (request.resource.data.status == 'CLOSED' &&
-         request.resource.data.closedBy == request.auth.uid &&
-         request.resource.data.createdBy == resource.data.createdBy) ||
-        // Pause action: any supervisor can pause
-        (request.resource.data.status == 'PAUSED' &&
-         request.resource.data.pausedBy == request.auth.uid &&
-         request.resource.data.createdBy == resource.data.createdBy) ||
-        // Reopen action: any supervisor can reopen
-        (resource.data.status == 'PAUSED' &&
-         request.resource.data.status == 'OPEN' &&
-         request.resource.data.createdBy == resource.data.createdBy)
+        isClosingValid() ||
+        isPausingValid() ||
+        isReopeningValid()
       );
 
       allow delete: if isAdmin();

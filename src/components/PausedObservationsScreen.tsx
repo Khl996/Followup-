@@ -27,7 +27,7 @@ export const PausedObservationsScreen: React.FC<PausedObservationsScreenProps> =
   setScreen,
   onSelectObservation,
 }) => {
-  const { observations, loading } = useData();
+  const { observations, loading, error } = useData();
 
   // All paused observations sorted primarily by expected review date
   const pausedList = useMemo(() => {
@@ -75,6 +75,20 @@ export const PausedObservationsScreen: React.FC<PausedObservationsScreenProps> =
         <div className="py-12 text-center text-xs text-slate-700">
           <div className="w-6 h-6 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
           جاري تحميل الملاحظات المعلقة...
+        </div>
+      ) : error ? (
+        <div className="py-10 px-4 bg-amber-50/80 rounded-2xl border border-amber-200 text-center">
+          <AlertTriangle className="w-10 h-10 text-amber-600 mx-auto mb-2 opacity-90" />
+          <h3 className="text-sm font-bold text-slate-900 mb-1">تعذر تحميل البيانات</h3>
+          <p className="text-xs text-slate-700 max-w-xs mx-auto mb-4 leading-relaxed">
+            تعذر تحميل البيانات حالياً. تحقق من الاتصال ثم حاول مرة أخرى.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="inline-flex items-center gap-1.5 py-2 px-4 bg-sky-700 hover:bg-sky-800 text-white rounded-xl text-xs font-bold transition-colors"
+          >
+            <span>إعادة المحاولة</span>
+          </button>
         </div>
       ) : pausedList.length === 0 ? (
         <div className="py-12 px-4 bg-white rounded-2xl border border-dashed border-slate-300 text-center">

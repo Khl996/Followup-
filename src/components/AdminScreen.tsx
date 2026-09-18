@@ -119,18 +119,22 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setScreen }) => {
   const handleAddSupervisor = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!supEmail.trim() || !supName.trim()) return;
+    if (!supPass || supPass.trim().length < 6) {
+      setMsg('يرجى إدخال كلمة مرور للمشرف لا تقل عن 6 خانات.');
+      return;
+    }
     setCreatingSupervisor(true);
     try {
       await createSupervisorAccount(
         supEmail.trim(), 
-        supPass || 'TempPass123!', 
+        supPass.trim(), 
         supName.trim(), 
         supRole
       );
       setSupEmail('');
       setSupPass('');
       setSupName('');
-      setMsg('تم إنشاء حساب المشرف بنجاح بدون تسجيل خروج المدير');
+      setMsg('تم إنشاء حساب المشرف بنجاح');
       setTimeout(() => setMsg(''), 3000);
     } catch (err: any) {
       console.error(err);
@@ -461,9 +465,11 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({ setScreen }) => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <input
                   type="password"
-                  placeholder="كلمة المرور المؤقتة (افتراضي: TempPass123!)"
+                  placeholder="كلمة المرور (6 خانات على الأقل)"
                   value={supPass}
                   onChange={(e) => setSupPass(e.target.value)}
+                  required
+                  minLength={6}
                   className="p-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-sky-500 outline-hidden text-left"
                   dir="ltr"
                 />

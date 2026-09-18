@@ -65,7 +65,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (!isFirebaseLive || !db) {
       setLoading(false);
-      setError('تعذر الاتصال بخدمة Firebase. يرجى التحقق من الاتصال.');
+      setError('تعذر تحميل البيانات حالياً. تحقق من الاتصال ثم حاول مرة أخرى.');
       return;
     }
 
@@ -96,7 +96,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       },
       (err) => {
         console.error('Firestore Observations Error:', err);
-        setError('تعذر تحميل الملاحظات من الخادم. يرجى التحقق من اتصال الإنترنت.');
+        setError('تعذر تحميل البيانات حالياً. تحقق من الاتصال ثم حاول مرة أخرى.');
         setLoading(false);
       }
     );
