@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Building2, Lock, Mail, AlertCircle, UserPlus, LogIn } from 'lucide-react';
+import { Building2, Lock, Mail, AlertCircle, LogIn } from 'lucide-react';
 
 export const SupervisorAuthCard: React.FC = () => {
-  const { loginWithEmail, createSupervisorAccount } = useAuth();
+  const { loginWithEmail } = useAuth();
 
-  const [email, setEmail] = useState('Khalid.a.kh990@gmail.com');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('خالد العتيبي');
-  const [isRegistering, setIsRegistering] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -18,24 +16,13 @@ export const SupervisorAuthCard: React.FC = () => {
     setLoading(true);
 
     try {
-      if (isRegistering) {
-        await createSupervisorAccount(
-          email.trim(),
-          password,
-          name.trim() || 'مشرف مرافق',
-          email.trim().toLowerCase() === 'khalid.a.kh990@gmail.com' ? 'admin' : 'supervisor'
-        );
-      } else {
-        await loginWithEmail(email.trim(), password);
-      }
+      await loginWithEmail(email.trim(), password);
     } catch (err: any) {
       console.error('Authentication error:', err);
       if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
-        setError('بيانات الدخول غير صحيحة أو أن الحساب غير مسجل. إذا كانت هذه أول مرة، انقر على "تسجيل هذا الحساب لأول مرة" أدناه.');
+        setError('بيانات الدخول غير صحيحة أو أن الحساب غير مسجل.');
       } else if (err.code === 'auth/wrong-password') {
         setError('كلمة المرور غير صحيحة.');
-      } else if (err.code === 'auth/email-already-in-use') {
-        setError('هذا البريد مسجل مسبقاً، يرجى تسجيل الدخول مباشرة.');
       } else if (err.code === 'auth/weak-password') {
         setError('كلمة المرور يجب ألا تقل عن 6 خانات.');
       } else if (err.code === 'auth/network-request-failed') {
@@ -72,25 +59,8 @@ export const SupervisorAuthCard: React.FC = () => {
           </div>
         )}
 
-        {/* Login / Register Form */}
+        {/* Login Form Only */}
         <form onSubmit={handleSubmit} className="space-y-3.5">
-          
-          {isRegistering && (
-            <div>
-              <label className="block text-xs font-bold text-slate-800 mb-1">
-                اسم المشرف
-              </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="الاسم الكامل للمشرف"
-                required
-                className="w-full p-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-sky-500 outline-hidden"
-              />
-            </div>
-          )}
-
           <div>
             <label className="block text-xs font-bold text-slate-800 mb-1">
               البريد الإلكتروني للمشرف
@@ -132,35 +102,9 @@ export const SupervisorAuthCard: React.FC = () => {
             disabled={loading}
             className="w-full py-3 bg-sky-700 hover:bg-sky-800 active:bg-sky-900 text-white font-bold rounded-xl text-xs shadow-md transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
           >
-            {isRegistering ? (
-              <>
-                <UserPlus className="w-4 h-4" />
-                <span>{loading ? 'جاري التسجيل...' : 'تسجيل حساب المشرف'}</span>
-              </>
-            ) : (
-              <>
-                <LogIn className="w-4 h-4" />
-                <span>{loading ? 'جاري الدخول...' : 'دخول المشرف'}</span>
-              </>
-            )}
+            <LogIn className="w-4 h-4" />
+            <span>{loading ? 'جاري الدخول...' : 'دخول المشرف'}</span>
           </button>
-
-          {/* Toggle Login / Register */}
-          <div className="pt-2 text-center">
-            <button
-              type="button"
-              onClick={() => {
-                setIsRegistering(!isRegistering);
-                setError('');
-              }}
-              className="text-xs text-sky-700 hover:text-sky-900 font-semibold transition-colors"
-            >
-              {isRegistering
-                ? 'لديك حساب بالفعل؟ تسجيل الدخول'
-                : 'أول مرة تستخدم هذا الحساب؟ تسجيل الحساب لأول مرة'}
-            </button>
-          </div>
-
         </form>
 
       </div>

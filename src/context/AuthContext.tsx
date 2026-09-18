@@ -50,7 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 const newUser: SupervisorUser = {
                   id: firebaseUser.uid,
                   email: firebaseUser.email || '',
-                  displayName: firebaseUser.displayName || (isAdminEmail ? 'خالد العتيبي' : 'مشرف مرافق'),
+                  displayName: firebaseUser.displayName || (isAdminEmail ? 'مدير النظام' : 'مشرف مرافق'),
                   role: isAdminEmail ? 'admin' : 'supervisor',
                   active: true,
                 };
@@ -68,7 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setCurrentUser({
               id: firebaseUser.uid,
               email: firebaseUser.email || '',
-              displayName: firebaseUser.displayName || (isAdminEmail ? 'خالد العتيبي' : 'مشرف مرافق'),
+              displayName: firebaseUser.displayName || (isAdminEmail ? 'مدير النظام' : 'مشرف مرافق'),
               role: isAdminEmail ? 'admin' : 'supervisor',
               active: true,
             });

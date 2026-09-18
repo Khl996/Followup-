@@ -4,7 +4,7 @@ export const INITIAL_SUPERVISORS: SupervisorUser[] = [
   {
     id: 'user_khalid',
     email: 'Khalid.a.kh990@gmail.com',
-    displayName: 'خالد العتيبي',
+    displayName: 'مدير النظام',
     role: 'admin',
     active: true,
   },
@@ -96,7 +96,7 @@ export const INITIAL_OBSERVATIONS: Observation[] = [
     workerName: 'سعود',
     status: 'OPEN',
     createdBy: 'user_khalid',
-    createdByName: 'خالد العتيبي',
+    createdByName: 'مدير النظام',
     createdAt: todayMorning,
   },
   {
@@ -110,7 +110,7 @@ export const INITIAL_OBSERVATIONS: Observation[] = [
     workerName: 'إبراهيم',
     status: 'OPEN',
     createdBy: 'user_khalid',
-    createdByName: 'خالد العتيبي',
+    createdByName: 'مدير النظام',
     createdAt: todayMidday,
   },
   {
@@ -157,10 +157,10 @@ export const INITIAL_OBSERVATIONS: Observation[] = [
     workerName: 'عثمان',
     status: 'PAUSED',
     createdBy: 'user_khalid',
-    createdByName: 'خالد العتيبي',
+    createdByName: 'مدير النظام',
     createdAt: twoDaysAgo,
     pausedBy: 'user_khalid',
-    pausedByName: 'خالد العتيبي',
+    pausedByName: 'مدير النظام',
     pausedAt: yesterday,
     pauseReason: 'عدم توفر مواد في المستودع حالياً',
     reviewDate: pastDateStr, // Overdue review date! Highlighted
@@ -176,7 +176,7 @@ export const INITIAL_OBSERVATIONS: Observation[] = [
     workerName: 'سعود',
     status: 'CLOSED',
     createdBy: 'user_khalid',
-    createdByName: 'خالد العتيبي',
+    createdByName: 'مدير النظام',
     createdAt: yesterday,
     closedBy: 'user_ahmed', // Closed by another supervisor
     closedByName: 'أحمد الشمري',
